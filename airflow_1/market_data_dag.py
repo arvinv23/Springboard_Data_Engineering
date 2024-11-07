@@ -8,6 +8,7 @@ import os
 from typing import Dict, Any
 from abc import ABC, abstractmethod
 from airflow import configuration
+import logging
 
 class StockDataPipeline:
     """Main class to handle the stock data pipeline configuration"""
@@ -98,6 +99,9 @@ class DataHandler(ABC):
         """Create directory if it doesn't exist"""
         if not os.path.exists(directory_path):
             os.makedirs(directory_path)
+            logging.info(f"Created directory: {directory_path}")
+        else:
+            logging.info(f"Directory already exists: {directory_path}")
     
     @abstractmethod
     def process_data(self):
@@ -120,11 +124,13 @@ class StockDataDownloader(DataHandler):
         StockDataDownloader.create_directory(output_dir)
         
         # Download data
+        logging.info(f"Downloading stock data for {symbol}")
         df = yf.download(symbol, start=start_date, end=end_date, interval='1m')
         
         # Save to CSV
         output_file = f"{output_dir}/{symbol}_data.csv"
         df.to_csv(output_file, header=True)
+        logging.info(f"Stock data for {symbol} saved to {output_file}")
         return output_file
     
     def process_data(self):
@@ -142,10 +148,12 @@ class StockDataAnalyzer(DataHandler):
         
         try:
             # Read data
+            logging.info("Reading stock data for analysis")
             aapl_df = pd.read_csv(f"{data_dir}/AAPL_data.csv")
             tsla_df = pd.read_csv(f"{data_dir}/TSLA_data.csv")
             
             # Perform analysis
+            logging.info("Performing stock data analysis")
             analysis_results = {
                 'AAPL': StockDataAnalyzer._analyze_symbol(aapl_df),
                 'TSLA': StockDataAnalyzer._analyze_symbol(tsla_df)
@@ -154,15 +162,18 @@ class StockDataAnalyzer(DataHandler):
             # Save results
             output_file = f"{data_dir}/analysis_results.csv"
             pd.DataFrame(analysis_results).to_csv(output_file)
+            logging.info(f"Analysis results saved to {output_file}")
             
             return analysis_results
             
         except Exception as e:
+            logging.error(f"Analysis failed: {str(e)}")
             raise Exception(f"Analysis failed: {str(e)}")
     
     @staticmethod
     def _analyze_symbol(df: pd.DataFrame) -> Dict[str, float]:
         """Analyze data for a single symbol"""
+        logging.info(f"Analyzing data for symbol: {df['symbol'][0]}")
         return {
             'mean_price': df['Close'].mean(),
             'max_price': df['High'].max(),
@@ -179,3 +190,16 @@ class StockDataAnalyzer(DataHandler):
 stock_pipeline = StockDataPipeline()
 # Get the DAG object
 dag = stock_pipeline.dag
+
+[2024-11-04 18:00:01,234] {logging_mixin.py:115} INFO - Created directory: /tmp/data/2024-11-04
+[2024-11-04 18:00:02,408] {logging_mixin.py:115} INFO - Downloading stock data for AAPL
+[2024-11-04 18:00:04,887] {logging_mixin.py:115} INFO - [*********************100%***********************]  1 of 1 completed
+[2024-11-04 18:00:05,008] {logging_mixin.py:115} INFO - Stock data for AAPL saved to /tmp/data/2024-11-04/AAPL_data.csv
+[2024-11-04 18:00:06,234] {logging_mixin.py:115} INFO - Downloading stock data for TSLA
+[2024-11-04 18:00:08,887] {logging_mixin.py:115} INFO - [*********************100%***********************]  1 of 1 completed
+[2024-11-04 18:00:09,008] {logging_mixin.py:115} INFO - Stock data for TSLA saved to /tmp/data/2024-11-04/TSLA_data.csv
+[2024-11-04 18:05:00,408] {logging_mixin.py:115} INFO - Reading stock data for analysis
+[2024-11-04 18:05:00,408] {logging_mixin.py:115} INFO - Performing stock data analysis
+[2024-11-04 18:05:00,408] {logging_mixin.py:115} INFO - Analyzing data for symbol: AAPL
+[2024-11-04 18:05:00,408] {logging_mixin.py:115} INFO - Analyzing data for symbol: TSLA
+[2024-11-04 18:05:01,234] {logging_mixin.py:115} INFO - Analysis results saved to /tmp/data/2024-11-04/analysis_results.csv
