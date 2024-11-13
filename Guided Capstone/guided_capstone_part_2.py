@@ -88,4 +88,4 @@ if __name__ == "__main__":
     etl_process.process_quote_data(input_container, input_path, output_container, output_path)
 
     # Stop Spark Session
-    spark.stop()M
+    spark.stop()
