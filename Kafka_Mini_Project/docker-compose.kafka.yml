@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  zk-server:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_SYNC_LIMIT: "2"
+    networks:
+      - kafka-net
+
+  kafka-broker:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: broker
+    restart: unless-stopped
+    depends_on:
+      - zk-server
+    environment:
+      KAFKA_BROKER_ID: "1"
+      KAFKA_ZOOKEEPER_CONNECT: "zk-server:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-broker:9092"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    external: true 
+    name: kafka-network

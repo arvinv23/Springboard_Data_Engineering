@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  transaction-generator:
+    build: 
+      context: ./generator
+      dockerfile: Dockerfile
+    container_name: tx-generator
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKER_URL: "broker:9092"
+      TRANSACTIONS_TOPIC: "queue.transactions"
+      TRANSACTIONS_PER_SECOND: 1200
+    networks:
+      - kafka-net
+
+  fraud-detector:
+    build:
+      context: ./detector
+      dockerfile: Dockerfile
+    container_name: fraud-detector
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKER_URL: "broker:9092" 
+      TRANSACTIONS_TOPIC: "queue.transactions"
+      VALID_TRANSACTIONS: "stream.valid.tx"
+      SUSPICIOUS_TRANSACTIONS: "stream.suspicious.tx"
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    external: true
+    name: kafka-network
